@@ -2,7 +2,7 @@
 /**
 * Plugin name: HTML Forms Recaptcha
 * Description: Enable Recaptcha validation for ibericode's HTML5 Forms Plugin.
-* Version: 1.0.1
+* Version: 1.0.2
 * Author: Andrew Hale
 * 
 */
@@ -39,26 +39,6 @@ add_filter( "plugin_action_links_$plugin", 'plugin_add_settings_link' );
 
 
 
-// Add Google's recaptcha code to the head
-function recaptcha_init() {
-    $keys = get_option('recaptcha_keys', array() );
-
-    echo '<script async defer src="https://www.google.com/recaptcha/api.js?render='.$keys['site_key'].'"></script>
-        <script>
-            grecaptcha.ready(function() {
-                grecaptcha.execute("'.$keys['site_key'].'", {action:"validate_captcha"})
-                    .then(function(token) {
-                        var recaptchaElements = document.getElementsByName("recaptcha");
-                        for (var i = 0; i < recaptchaElements.length; i++) {
-                            recaptchaElements[i].value = token;
-                        }
-                });
-            });
-        </script>';
-}
-add_action( 'wp_head', 'recaptcha_init' );
-
-
 // Hook into ibericode's HTML Forms form validation
 add_filter( 'hf_validate_form', function( $error_code, $form, $data ) {
 
@@ -84,7 +64,7 @@ add_filter( 'hf_validate_form', function( $error_code, $form, $data ) {
 
     }
 
-	return $error_code;
+    return $error_code;
 }, 10, 3 );
 
 // Register error message for our custom error code
@@ -94,8 +74,25 @@ add_filter( 'hf_form_message_recaptcha_error', function( $message ) {
 
 // Add the recatchca to forms
 add_filter( 'hf_form_markup', function( $markup ) {
-	$markup .= '<input type="hidden" name="recaptcha" value="validate_captcha">';
-	return $markup;
+
+    $keys = get_option('recaptcha_keys', array() );
+
+    $recaptcha = '<script async defer src="https://www.google.com/recaptcha/api.js?render='.$keys['site_key'].'"></script>
+        <script>
+            if(typeof grecaptcha !== "undefined"){
+                grecaptcha.ready(function() {
+                    grecaptcha.execute("'.$keys['site_key'].'", {action:"validate_captcha"})
+                        .then(function(token) {
+                            var recaptchaElements = document.getElementsByName("recaptcha");
+                            for (var i = 0; i < recaptchaElements.length; i++) {
+                                recaptchaElements[i].value = token;
+                            }
+                    });
+                });
+            }
+        </script>';
+    $markup .= '<input type="hidden" name="recaptcha" value="validate_captcha">';
+    return $recaptcha.$markup;
 });
 
 
